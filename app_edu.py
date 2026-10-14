@@ -324,7 +324,7 @@ class PDFMappa(FPDF):
       self.cell(
           0,
           8,
-          txt=f"MAPPA CONCETTUALE: {titolo_c} (Continuazione)",
+          txt=titolo_c.encode("latin-1", "replace").decode("latin-1"),
           ln=True,
           align="C",
       )
@@ -355,7 +355,7 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
   pdf.cell(
       printable_width,
       12,
-      txt=f"MAPPA CONCETTUALE: {titolo_pulito.upper()}",
+      txt=f"MAPPA CONCETTUALE: {titolo_pulito.upper()}".encode("latin-1", "replace").decode("latin-1"),
       border=1,
       fill=True,
       ln=True,
@@ -388,36 +388,38 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
       pdf.ln(3)
       continue
 
+    # Pulizia rigorosa per codifica latin-1 in FPDF
     l_clean = "".join([c if ord(c) < 256 else "" for c in l_clean])
+    l_clean_safe = l_clean.encode("latin-1", "replace").decode("latin-1")
 
-    # Stili PDF con segni evidenti e supporto al grassetto per le parole chiave (**testo**)
+    # Stili PDF con segni evidenti
     if is_domanda:
       pdf.set_font("helvetica", "B", 11)
       pdf.set_text_color(15, 23, 42)
-      pdf.set_fill_color(191, 219, 254)  # Blu chiaro marcato
+      pdf.set_fill_color(191, 219, 254)
       pdf.set_x(15)
-      pdf.multi_cell(printable_width, 8, txt=l_clean, border=1, fill=True, align="C")
+      pdf.multi_cell(printable_width, 8, txt=l_clean_safe, border=1, fill=True, align="C")
       pdf.ln(2.5)
     elif is_sotto:
       pdf.set_font("helvetica", "B", 10.5)
       pdf.set_text_color(30, 41, 59)
-      pdf.set_fill_color(226, 232, 240)  # Grigio ardesia evidente
+      pdf.set_fill_color(226, 232, 240)
       pdf.set_x(15)
-      pdf.multi_cell(printable_width, 7.5, txt=l_clean, border=1, fill=True, align="C")
+      pdf.multi_cell(printable_width, 7.5, txt=l_clean_safe, border=1, fill=True, align="C")
       pdf.ln(2.5)
     elif is_spiegazione:
       pdf.set_font("helvetica", "I", 10)
       pdf.set_text_color(51, 65, 85)
       pdf.set_fill_color(255, 255, 255)
       pdf.set_x(22)
-      pdf.multi_cell(printable_width - 14, 6.5, txt=l_clean, border=1, fill=True, align="L")
+      pdf.multi_cell(printable_width - 14, 6.5, txt=l_clean_safe, border=1, fill=True, align="L")
       pdf.ln(2)
     else:
       pdf.set_font("helvetica", "", 10)
       pdf.set_text_color(71, 85, 105)
       pdf.set_fill_color(248, 250, 252)
       pdf.set_x(25)
-      pdf.multi_cell(printable_width - 20, 6.5, txt=f"-  {l_clean}", border=1, fill=True, align="L")
+      pdf.multi_cell(printable_width - 20, 6.5, txt=f"-  {l_clean_safe}", border=1, fill=True, align="L")
       pdf.ln(2)
 
   if immagini:
@@ -633,7 +635,6 @@ if st.session_state.testo_risultato:
   ):
     st.audio(st.session_state.audio_path, format="audio/mp3")
     
-    # Pulsante per il download del file audio
     audio_filename = f"audio_mappa_{st.session_state.topic_salvato.replace(' ', '_').lower()}.mp3"
     with open(st.session_state.audio_path, "rb") as f:
       st.download_button(
