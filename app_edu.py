@@ -313,28 +313,27 @@ class PDFMappa(FPDF):
     super().__init__(orientation=orientation, unit=unit, format=format)
     self.titolo_mappa = titolo
 
+  def clean_str(self, txt):
+    """Converte e pulisce qualsiasi stringa in formato sicuro latin-1 senza errori."""
+    if not txt:
+      return ""
+    if not isinstance(txt, str):
+      txt = str(txt)
+    return txt.encode("latin-1", "replace").decode("latin-1")
+
   def header(self):
     if self.page_no() > 1:
       self.set_font("helvetica", "B", 11)
       self.set_text_color(15, 23, 42)
-      titolo_c = (
-          "".join([c if ord(c) < 256 else "" for c in self.titolo_mappa])
-          .upper()
-      )
-      self.cell(
-          0,
-          8,
-          txt=titolo_c.encode("latin-1", "replace").decode("latin-1"),
-          ln=True,
-          align="C",
-      )
+      titolo_c = self.clean_str(f"MAPPA CONCETTUALE: {self.titolo_mappa.upper()} (Continuazione)")
+      self.cell(0, 8, txt=titolo_c, ln=True, align="C")
       self.ln(4)
 
   def footer(self):
     self.set_y(-12)
     self.set_font("helvetica", "I", 8)
     self.set_text_color(100, 116, 139)
-    self.cell(0, 10, f"Pagina {self.page_no()}", align="C")
+    self.cell(0, 10, txt=f"Pagina {self.page_no()}", align="C")
 
 
 def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
@@ -346,21 +345,14 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
   pdf.set_right_margin(15)
 
   printable_width = 180 if ori == "P" else 267
-  titolo_pulito = "".join([c if ord(c) < 256 else "" for c in titolo])
+  titolo_pulito = pdf.clean_str(titolo.upper())
 
   # Intestazione principale evidente
   pdf.set_font("helvetica", "B", 14)
   pdf.set_text_color(15, 23, 42)
   pdf.set_fill_color(203, 213, 225)
-  pdf.cell(
-      printable_width,
-      12,
-      txt=f"MAPPA CONCETTUALE: {titolo_pulito.upper()}".encode("latin-1", "replace").decode("latin-1"),
-      border=1,
-      fill=True,
-      ln=True,
-      align="C",
-  )
+  header_txt = pdf.clean_str(f"MAPPA CONCETTUALE: {titolo_pulito}")
+  pdf.cell(printable_width, 12, txt=header_txt, border=1, fill=True, ln=True, align="C")
   pdf.ln(6)
 
   for linea in testo.split("\n"):
@@ -378,6 +370,7 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
         .replace("📌", "")
         .replace("💡", "")
         .replace("🔍", "")
+        .replace("**", "")
         .replace("#", "")
         .strip()
     )
@@ -388,11 +381,9 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
       pdf.ln(3)
       continue
 
-    # Pulizia rigorosa per codifica latin-1 in FPDF
-    l_clean = "".join([c if ord(c) < 256 else "" for c in l_clean])
-    l_clean_safe = l_clean.encode("latin-1", "replace").decode("latin-1")
+    l_clean_safe = pdf.clean_str(l_clean)
 
-    # Stili PDF con segni evidenti
+    # Stili PDF con segni evidenti e parametri stringa sicuri
     if is_domanda:
       pdf.set_font("helvetica", "B", 11)
       pdf.set_text_color(15, 23, 42)
@@ -419,7 +410,8 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
       pdf.set_text_color(71, 85, 105)
       pdf.set_fill_color(248, 250, 252)
       pdf.set_x(25)
-      pdf.multi_cell(printable_width - 20, 6.5, txt=f"-  {l_clean_safe}", border=1, fill=True, align="L")
+      item_txt = pdf.clean_str(f"- {l_clean_safe}")
+      pdf.multi_cell(printable_width - 20, 6.5, txt=item_txt, border=1, fill=True, align="L")
       pdf.ln(2)
 
   if immagini:
@@ -433,7 +425,11 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
       except Exception:
         pass
 
-  return bytes(pdf.output())
+  # Restituisce i byte in sicurezza
+  pdf_output = pdf.output(dest='S')
+  if isinstance(pdf_output, str):
+    return pdf_output.encode('latin-1')
+  return bytes(pdf_output)
 
 
 # --- INTERFACCIA WEB FORM ---
