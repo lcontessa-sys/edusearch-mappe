@@ -13,7 +13,7 @@ from gtts import gTTS
 # 🔑 CONFIGURAZIONE FISSA (La tua chiave API interna)
 # =====================================================================
 DEFAULT_GROQ_API_KEY = (
-    "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"
+    "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"
 )
 
 # URL protetti contro caratteri invisibili di copia-incolla
