@@ -10,11 +10,14 @@ import streamlit as st
 from gtts import gTTS
 
 # =====================================================================
-# 🔑 CONFIGURAZIONE FISSA (La tua chiave API interna)
+# 🔑 CONFIGURAZIONE SICURA DELLA CHIAVE API (Tramite Streamlit Secrets)
 # =====================================================================
-DEFAULT_GROQ_API_KEY = (
-    "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"
-)
+# Per configurarla su Streamlit Cloud, inserisci GROQ_API_KEY nei Secrets del progetto.
+# In locale, puoi impostarla nel file .streamlit/secrets.toml
+try:
+    DEFAULT_GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
+except Exception:
+    DEFAULT_GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 
 # URL protetti contro caratteri invisibili di copia-incolla
 URL_MODELS = "".join(
@@ -199,7 +202,10 @@ st.markdown(
 # --- BARRA LATERALE ---
 with st.sidebar:
   st.header("⚙️ Configurazione")
-  st.success("🔒 API configurata internamente.")
+  if DEFAULT_GROQ_API_KEY:
+    st.success("🔒 API configurata in modo sicuro.")
+  else:
+    st.error("⚠️ Chiave API non trovata nei segreti di Streamlit!")
 
 api_key_input = DEFAULT_GROQ_API_KEY
 
@@ -425,7 +431,6 @@ def genera_pdf(testo, titolo, orientamento="A4 Verticale", immagini=[]):
       except Exception:
         pass
 
-  # Restituisce i byte in sicurezza
   pdf_output = pdf.output(dest='S')
   if isinstance(pdf_output, str):
     return pdf_output.encode('latin-1')
@@ -477,14 +482,9 @@ with st.form("form_documento"):
   )
 
 if submit_btn:
-  if (
-      not api_key_input
-      or api_key_input == "gsk_..."
-      or not api_key_input.startswith("gsk_")
-  ):
+  if not api_key_input:
     st.error(
-        "⚠️ Inserisci la tua chiave API di Groq valida nella variabile"
-        " DEFAULT_GROQ_API_KEY in cima al file app.py!"
+        "⚠️ Configura la chiave API nei Secrets di Streamlit prima di procedere!"
     )
   elif not topic:
     st.error("⚠️ L'argomento non può essere vuoto!")
@@ -548,7 +548,7 @@ if submit_btn:
           st.session_state.topic_salvato = topic
           st.session_state.orientamento_salvato = orientamento_pdf
           st.session_state.immagini_correlate = cerca_immagini_attinenti(topic)
-          st.session_state.audio_path = None  # Reset audio per la nuova mappa
+          st.session_state.audio_path = None
         else:
           st.error("❌ Errore restituito dall'API:")
           st.json(data)
@@ -607,7 +607,6 @@ if st.session_state.testo_risultato:
 
   st.markdown("---")
 
-  # --- OPZIONE AUDIO SU RICHIESTA CON PULSANTE DI DOWNLOAD ---
   st.markdown(
       """
       <div class="audio-option-card">
